@@ -1,0 +1,55 @@
+[project]
+name = "ecoflow-companion"
+version = "0.1.0"
+description = "Local BLE desktop widget and notifications for EcoFlow power stations on Windows"
+readme = "README.md"
+license = "Apache-2.0"
+# Upstream ha-ef-ble (vendored eflib) requires >=3.13: it imports typing.TypeIs at module level.
+requires-python = ">=3.13,<3.15"
+dependencies = [
+  # Runtime dependencies of the vendored upstream eflib (see src/ecoflow_companion/_vendor/README.md)
+  "bleak>=3.0.2",
+  "bleak-retry-connector>=4.7.1",
+  "ecdsa~=0.19",
+  "pycryptodome~=3.23",
+  "protobuf>=6.30",
+  "pyside6-essentials>=6.8",
+  "winrt-windows-ui-notifications~=3.2.1 ; sys_platform == 'win32'",
+  "winrt-windows-data-xml-dom~=3.2.1 ; sys_platform == 'win32'",
+]
+
+[project.scripts]
+ecoflow-diag = "ecoflow_companion.diagnostics.ble_probe:main"
+
+[project.gui-scripts]
+ecoflow-companion = "ecoflow_companion.main:main"
+
+[dependency-groups]
+build = [
+    "pyinstaller>=6.11",
+]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=1.0",
+  "ruff>=0.13",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ecoflow_companion"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["src/ecoflow_companion/_vendor"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "ASYNC", "RUF", "DTZ", "PTH", "T20"]
+ignore = ["T201"]  # print() is the output channel of the diagnostic CLI
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
