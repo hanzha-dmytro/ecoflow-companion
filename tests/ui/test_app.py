@@ -5,6 +5,7 @@ import threading
 from dataclasses import replace
 
 import pytest
+import shiboken6
 from PySide6.QtCore import QObject, QPoint, QUuid
 
 from ecoflow_companion.app import AppController
@@ -58,6 +59,11 @@ def controller(qapp, tmp_path, monkeypatch):
     c.settings_file = paths.settings_file  # type: ignore[attr-defined]
     yield c
     c.shutdown()
+    # Signal connections tie the controller and its Qt objects into reference cycles, and the
+    # cyclic GC frees those on whatever thread it runs: on the next test's service thread,
+    # deleting widgets aborted the process. Delete them here, on the GUI thread.
+    for obj in (c.widget, c.tray.menu, c):
+        shiboken6.delete(obj)
 
 
 def test_shows_live_data_from_the_service(controller, pump):
