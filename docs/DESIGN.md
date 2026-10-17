@@ -167,6 +167,9 @@ AppController ── settings, storage            MonitorService ── EflibAda
   timings apply on the next start.
 - On the first connection with no station selected, the station's address and serial are saved,
   so later connections find exactly that station and stop scanning as soon as it is seen.
+- Show desktop (Win+D) does not minimize the widget but raises the desktop window over it. A
+  WinEvent hook (`infrastructure/windows/show_desktop.py`) puts the widget back above the
+  desktop without activating it; the next Win+D restores the other windows over it as usual.
 - One copy per Windows user (`QLocalServer`): a second start only asks the first to show its
   widget. The request is the connection itself, so it cannot be lost to timing.
 - The user ID is stored with DPAPI (current Windows user, application-specific entropy), never

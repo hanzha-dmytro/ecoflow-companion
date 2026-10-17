@@ -20,10 +20,12 @@ from ecoflow_companion.infrastructure.storage.settings_repository import Setting
 from ecoflow_companion.infrastructure.windows.autostart import Autostart
 from ecoflow_companion.infrastructure.windows.clock import AwakeClock
 from ecoflow_companion.infrastructure.windows.credentials import CredentialStore
+from ecoflow_companion.infrastructure.windows.show_desktop import ShowDesktopGuard
 from ecoflow_companion.infrastructure.windows.toast import WinRtToastNotifier, register_app_id
 from ecoflow_companion.logging_setup import configure_logging
 from ecoflow_companion.presentation.icons import app_icon
 from ecoflow_companion.presentation.single_instance import SingleInstance
+from ecoflow_companion.presentation.widget import DesktopWidget
 from ecoflow_companion.redaction import Redactor
 
 log = logging.getLogger("ecoflow_companion")
@@ -41,6 +43,15 @@ def toast_notifier(paths: AppPaths) -> Notifier | None:
         return None
     log.info("Using Windows toast notifications")
     return notifier
+
+
+def show_desktop_guard(widget: DesktopWidget) -> ShowDesktopGuard | None:
+    """Keeps the widget visible on Show desktop (Win+D); None if the hook cannot be set."""
+    try:
+        return ShowDesktopGuard(lambda: int(widget.winId()) if widget.isVisible() else None)
+    except OSError as e:
+        log.warning("Show desktop will cover the widget (%s)", e)
+        return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -97,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     instance.activated.connect(controller.show_widget)
     controller.start()
+    _desktop_guard = show_desktop_guard(controller.widget)  # the hook lives while it is held
     return app.exec()
 
 
