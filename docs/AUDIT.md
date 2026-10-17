@@ -81,6 +81,7 @@ run): **175 passed, 4 skipped**. All 4 skips are Linux/dbus-only tests.
 | AC output W | `ac_output_power` | `pow_get_ac_out` |
 | grid / AC plugged | `plugged_in_ac` | `plug_in_info_ac_charger_flag` (bool) |
 | total in / out W | `input_power` / `output_power` | `pow_in_sum_w` / `pow_out_sum_w` |
+| battery charging | not decoded upstream; read from the message | `cms_chg_dsg_state` (0 idle, 1 discharging, 2 charging) |
 
 `pd335_sys.proto` also has `plug_in_info_ac_in_flag` (uint32, field 61) and `flow_info_ac_in`
 (uint32 bitmask, field 47). Upstream maps neither.

@@ -74,6 +74,7 @@ class StationView:
     ac_out_text: str
     grid_text: str
     grid_tone: Tone
+    charging: bool  # from the grid; drawn as a bolt on the plug
     link_text: str
     link_tone: Tone
     stale: bool
@@ -117,6 +118,10 @@ def build_view(
         None: ("Grid unknown", Tone.UNKNOWN),
     }[snapshot.ac_plugged_in]
     stale = snapshot.stale
+    # Charging from solar with the grid down gets no bolt: the plug stands for the grid
+    charging = not stale and snapshot.ac_plugged_in is True and snapshot.battery_charging is True
+    if charging:
+        grid_text += " · charging"
 
     footer: list[str] = []
     if connection.error is not None and not connection.connected:
@@ -147,6 +152,7 @@ def build_view(
         ac_out_text=_watts(snapshot.ac_output_watts),
         grid_text=grid_text,
         grid_tone=Tone.UNKNOWN if stale else grid_tone,
+        charging=charging,
         link_text=link_text,
         link_tone=LINK_TONE[connection.status],
         stale=stale,

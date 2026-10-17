@@ -42,6 +42,20 @@ def test_live_values():
     assert v.title == "Delta 3 Classic"
 
 
+def test_charging_from_the_grid():
+    def charging(plugged, state, stale=False):
+        snapshot = StationSnapshot(54, 410.0, 118.0, plugged, AT, stale, battery_charging=state)
+        return view(snapshot)
+
+    v = charging(True, True)
+    assert v.charging
+    assert v.grid_text == "Grid connected · charging"
+    assert not charging(True, None).charging
+    assert not charging(False, True).charging  # solar: the grid is still down
+    assert not charging(True, True, stale=True).charging
+    assert charging(True, False).grid_text == "Grid connected"
+
+
 def test_unknown_is_never_zero():
     v = view(StationSnapshot(stale=False))
 

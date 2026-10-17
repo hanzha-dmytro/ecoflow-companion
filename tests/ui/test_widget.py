@@ -56,9 +56,10 @@ def test_render_live_and_stale(qapp):
 def test_grid_plug_paints_every_state(qapp):
     plug = GridPlug()
     for tone in Tone:
-        plug.set_state(f"Grid {tone}", tone)
-        assert not plug.grab().isNull()  # paintEvent ran
-        assert plug.accessibleName() == f"Grid {tone}"
+        for charging in (False, True):
+            plug.set_state(f"Grid {tone}", tone, charging)
+            assert not plug.grab().isNull()  # paintEvent ran
+            assert plug.accessibleName() == f"Grid {tone}"
 
 
 def test_menu_actions_emit_signals(qapp):

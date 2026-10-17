@@ -122,5 +122,6 @@ class MockStationAdapter:
                     ac_input_watts=ac_in,
                     ac_output_watts=s.ac_output_watts,
                     ac_plugged_in=plugged,
+                    battery_charging=charging,
                 )
             )

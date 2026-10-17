@@ -19,6 +19,7 @@ class Telemetry:
     ac_input_watts: float | None = None
     ac_output_watts: float | None = None
     ac_plugged_in: bool | None = None
+    battery_charging: bool | None = None  # the station's own charge state
 
     def is_empty(self) -> bool:
         return (
@@ -26,6 +27,7 @@ class Telemetry:
             and self.ac_input_watts is None
             and self.ac_output_watts is None
             and self.ac_plugged_in is None
+            and self.battery_charging is None
         )
 
 
@@ -43,6 +45,7 @@ class StationSnapshot:
     ac_plugged_in: bool | None = None
     last_update: datetime | None = None
     stale: bool = True
+    battery_charging: bool | None = None
 
 
 class LinkStatus(StrEnum):

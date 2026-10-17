@@ -12,6 +12,7 @@ from ecoflow_companion._vendor.eflib.packet import Packet
 from ecoflow_companion._vendor.eflib.pb import pd335_bms_bp_pb2, pd335_sys_pb2
 from ecoflow_companion.infrastructure.ecoflow.telemetry_mapper import (
     TelemetryMapper,
+    normalize_charge_state,
     normalize_percent,
 )
 
@@ -44,6 +45,7 @@ def test_device_is_the_upstream_classic_with_all_metrics(station):
         "ac_input_watts",
         "ac_output_watts",
         "ac_plugged_in",
+        "battery_charging",
     }
 
 
@@ -66,6 +68,16 @@ async def test_full_frame_maps_all_metrics(station):
         118.4,
         True,
     )
+
+
+async def test_charge_state_is_read_from_the_message(station):
+    device, _, received = station
+
+    for state in (2, 1, 0, 7):
+        await device.data_parse(frame(cms_chg_dsg_state=state))
+    await device.data_parse(frame(cms_batt_soc=54.0))
+
+    assert [t.battery_charging for t in received] == [True, False, False, None, None]
 
 
 async def test_partial_frame_reports_only_its_own_fields(station):
@@ -138,3 +150,11 @@ def test_other_message_types_are_not_telemetry(station, clock):
 )
 def test_normalize_percent(raw, expected):
     assert normalize_percent(raw) == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [(2, True), (1, False), (0, False), (3, None), (True, None), (None, None)],
+)
+def test_normalize_charge_state(raw, expected):
+    assert normalize_charge_state(raw) == expected

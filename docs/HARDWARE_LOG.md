@@ -179,3 +179,21 @@ disconnected" and "reconnected after 8 h" on every wake. Fixed: the app and `mon
 outages, debouncing, staleness and the silent-link watchdog with QueryUnbiasedInterruptTime,
 which excludes sleep (`infrastructure/windows/clock.py`). Rebuilt and restarted 13:19, connected
 in 1.8 s. **A long (overnight) sleep with the fix is still to be observed.**
+
+## Run 11 — 2026-10-17 18:45 and 20:03, `ecoflow-diag probe` while charging
+
+The battery charging from the grid, to find the signal behind the widget's charging bolt.
+
+| Field | 18:45 | 20:03 |
+|---|---|---|
+| `battery_level` | 58 % | 83 % |
+| `ac_input_power` / `ac_output_power` | 836 W / 344 W | 672 W / 164 W |
+| `battery_input_power` (`pow_get_bms` > 0) | 440 W | not recorded |
+| `cms_chg_dsg_state` / `bms_chg_dsg_state` (not decoded upstream) | not recorded | **2** in all 23 of 23 frames carrying them |
+| `flow_info_bms_chg` / `flow_info_bms_dsg` | not recorded | 14 / 14: the same while charging, so not a usable signal |
+
+The state fields arrive in the same frames as the grid flag (23 of 69 telemetry frames). The
+app maps `cms_chg_dsg_state == 2` as charging. EcoFlow documents 1 as discharging and 0 as idle.
+Later that evening, with the rebuilt app running, the widget's bolt went away once the battery
+was full, so the station stopped reporting 2; the value it sent instead was not recorded.
+**0 and 1 are still to be observed directly** (full battery in bypass, grid unplugged).

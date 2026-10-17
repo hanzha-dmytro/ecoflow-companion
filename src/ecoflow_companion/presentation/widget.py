@@ -74,16 +74,18 @@ class BatteryBar(QWidget):
 class GridPlug(QWidget):
     """A mains plug in the grid state's colour, crossed out when the grid is down.
 
-    The cross keeps "down" readable without telling red from green.
+    The cross keeps "down" readable without telling red from green. While the battery charges
+    from the grid, a bolt is cut out of the plug's body.
     """
 
     def __init__(self) -> None:
         super().__init__()
         self.setFixedSize(20, 26)  # the plug is drawn on this 20 x 26 grid
         self.tone = Tone.UNKNOWN
+        self.charging = False
 
-    def set_state(self, text: str, tone: Tone) -> None:
-        self.tone = tone
+    def set_state(self, text: str, tone: Tone, charging: bool = False) -> None:
+        self.tone, self.charging = tone, charging
         self.setToolTip(text)
         self.setAccessibleName(text)
         self.update()
@@ -94,12 +96,17 @@ class GridPlug(QWidget):
         color = QColor(TONE_COLORS[self.tone])
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(color)
-        painter.drawRoundedRect(QRectF(4.5, 0, 3, 8), 1, 1)  # pins
-        painter.drawRoundedRect(QRectF(12.5, 0, 3, 8), 1, 1)
-        painter.drawRoundedRect(QRectF(2, 6, 16, 10), 3, 3)  # body
-        painter.drawPolygon(QPolygonF([QPointF(5, 15), QPointF(15, 15), QPointF(12.5, 20),
-                                       QPointF(7.5, 20)]))  # fmt: skip
-        painter.drawRect(QRectF(8.75, 19, 2.5, 7))  # cable
+        painter.drawRoundedRect(QRectF(4.5, 0, 3, 7), 1, 1)  # pins
+        painter.drawRoundedRect(QRectF(12.5, 0, 3, 7), 1, 1)
+        painter.drawRoundedRect(QRectF(1.5, 5, 17, 13), 3, 3)  # body
+        painter.drawPolygon(QPolygonF([QPointF(5, 17.5), QPointF(15, 17.5), QPointF(12.5, 21.5),
+                                       QPointF(7.5, 21.5)]))  # fmt: skip
+        painter.drawRect(QRectF(8.75, 21, 2.5, 5))  # cable
+        if self.charging:
+            painter.setBrush(CARD)
+            painter.drawPolygon(QPolygonF([QPointF(12.2, 6.2), QPointF(5.6, 12.7),
+                                           QPointF(9.3, 12.7), QPointF(7.8, 17),
+                                           QPointF(14.4, 10.3), QPointF(10.7, 10.3)]))  # fmt: skip
         if self.tone is Tone.CRITICAL:
             solid, round_cap = Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap
             for pen in (QPen(CARD, 4.5, solid, round_cap), QPen(color, 2, solid, round_cap)):
@@ -187,7 +194,7 @@ class DesktopWidget(QWidget):
         self.bar.set_level(view.battery_level, view.battery_tone)
         self._paint(self.ac_in, f"AC in  {view.ac_in_text}", value_color)
         self._paint(self.ac_out, f"AC out  {view.ac_out_text}", value_color)
-        self.grid.set_state(view.grid_text, view.grid_tone)
+        self.grid.set_state(view.grid_text, view.grid_tone, view.charging)
         self.footer.setText("\n".join(view.footer))
         self.footer.setVisible(bool(view.footer))
         self.adjustSize()

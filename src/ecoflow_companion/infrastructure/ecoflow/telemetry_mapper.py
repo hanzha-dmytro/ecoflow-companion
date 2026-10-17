@@ -23,6 +23,11 @@ FIELD_MAP = {
     "plugged_in_ac": "ac_plugged_in",
 }
 
+# Protobuf fields upstream does not decode, read from the message itself -> domain metric
+RAW_FIELD_MAP = {
+    "cms_chg_dsg_state": "battery_charging",
+}
+
 
 def normalize_percent(value: object) -> int | None:
     """Upstream reports SoC as a float with 2 decimals; rounded half up to whole percent."""
@@ -43,11 +48,19 @@ def normalize_flag(value: object) -> bool | None:
     return value if isinstance(value, bool) else None
 
 
+def normalize_charge_state(value: object) -> bool | None:
+    """``cms_chg_dsg_state``: 0 idle, 1 discharging, 2 charging (2 verified on hardware)."""
+    if isinstance(value, bool) or value not in (0, 1, 2):
+        return None
+    return value == 2
+
+
 _NORMALIZERS = {
     "battery_percent": normalize_percent,
     "ac_input_watts": normalize_watts,
     "ac_output_watts": normalize_watts,
     "ac_plugged_in": normalize_flag,
+    "battery_charging": normalize_charge_state,
 }
 
 
@@ -62,11 +75,16 @@ class TelemetryMapper:
             if isinstance(descriptor, ProtobufField):
                 self._fields[metric] = (upstream_name, descriptor)
         self._message_types = {d.pb_field.message_type for _, d in self._fields.values()}
+        self._raw_fields = {
+            name: metric
+            for name, metric in RAW_FIELD_MAP.items()
+            if any(name in t.DESCRIPTOR.fields_by_name for t in self._message_types)
+        }
 
     @property
     def metrics(self) -> frozenset[str]:
         """Domain metrics this device's upstream class can provide."""
-        return frozenset(self._fields)
+        return frozenset(self._fields) | frozenset(self._raw_fields.values())
 
     def map(
         self, message: Message, received_at: datetime, received_monotonic: float
@@ -84,4 +102,9 @@ class TelemetryMapper:
             value = _NORMALIZERS[metric](getattr(self._device, upstream_name))
             if value is not None:
                 values[metric] = value
+        for name, metric in self._raw_fields.items():
+            if name in message.DESCRIPTOR.fields_by_name and message.HasField(name):
+                value = _NORMALIZERS[metric](getattr(message, name))
+                if value is not None:
+                    values[metric] = value
         return Telemetry(received_at, received_monotonic, **values)

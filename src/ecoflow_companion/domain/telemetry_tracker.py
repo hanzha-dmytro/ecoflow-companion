@@ -4,7 +4,13 @@ from datetime import datetime
 
 from ecoflow_companion.domain.models import StationSnapshot, Telemetry
 
-_METRICS = ("battery_percent", "ac_input_watts", "ac_output_watts", "ac_plugged_in")
+_METRICS = (
+    "battery_percent",
+    "ac_input_watts",
+    "ac_output_watts",
+    "ac_plugged_in",
+    "battery_charging",
+)
 
 
 class TelemetryTracker:
