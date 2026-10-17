@@ -16,8 +16,8 @@ from ecoflow_companion.presentation.settings_dialog import (
     SettingsDialog,
     parse_thresholds,
 )
-from ecoflow_companion.presentation.view_models import build_view
-from ecoflow_companion.presentation.widget import DesktopWidget, place_on_screen
+from ecoflow_companion.presentation.view_models import Tone, build_view
+from ecoflow_companion.presentation.widget import DesktopWidget, GridPlug, place_on_screen
 
 AT = datetime(2026, 10, 17, 9, 44, 48, tzinfo=UTC)
 STATION = StationInfo(
@@ -37,7 +37,8 @@ def test_render_live_and_stale(qapp):
     )
     assert widget.battery.text() == "54%"
     assert widget.ac_in.text() == "AC in  310 W"
-    assert widget.grid.text() == "Grid connected"
+    assert (widget.grid.tone, widget.grid.toolTip()) == (Tone.OK, "Grid connected")
+    assert widget.toolTip() == ""  # the card shows it all; only the tray needs the summary
     assert widget.footer.isHidden()
 
     widget.render(
@@ -50,6 +51,14 @@ def test_render_live_and_stale(qapp):
     assert "Reconnecting" in widget.link.text()
     assert not widget.footer.isHidden()
     assert "Station busy" in widget.footer.text()
+
+
+def test_grid_plug_paints_every_state(qapp):
+    plug = GridPlug()
+    for tone in Tone:
+        plug.set_state(f"Grid {tone}", tone)
+        assert not plug.grab().isNull()  # paintEvent ran
+        assert plug.accessibleName() == f"Grid {tone}"
 
 
 def test_menu_actions_emit_signals(qapp):

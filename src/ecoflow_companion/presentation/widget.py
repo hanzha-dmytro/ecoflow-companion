@@ -1,6 +1,6 @@
 """The desktop widget: a small movable card with the station's state."""
 
-from PySide6.QtCore import QPoint, QRect, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QPoint, QPointF, QRect, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
@@ -10,6 +10,8 @@ from PySide6.QtGui import (
     QMouseEvent,
     QPainter,
     QPaintEvent,
+    QPen,
+    QPolygonF,
 )
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QMenu, QVBoxLayout, QWidget
 
@@ -69,6 +71,42 @@ class BatteryBar(QWidget):
             )
 
 
+class GridPlug(QWidget):
+    """A mains plug in the grid state's colour, crossed out when the grid is down.
+
+    The cross keeps "down" readable without telling red from green.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setFixedSize(20, 26)  # the plug is drawn on this 20 x 26 grid
+        self.tone = Tone.UNKNOWN
+
+    def set_state(self, text: str, tone: Tone) -> None:
+        self.tone = tone
+        self.setToolTip(text)
+        self.setAccessibleName(text)
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        color = QColor(TONE_COLORS[self.tone])
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        painter.drawRoundedRect(QRectF(4.5, 0, 3, 8), 1, 1)  # pins
+        painter.drawRoundedRect(QRectF(12.5, 0, 3, 8), 1, 1)
+        painter.drawRoundedRect(QRectF(2, 6, 16, 10), 3, 3)  # body
+        painter.drawPolygon(QPolygonF([QPointF(5, 15), QPointF(15, 15), QPointF(12.5, 20),
+                                       QPointF(7.5, 20)]))  # fmt: skip
+        painter.drawRect(QRectF(8.75, 19, 2.5, 7))  # cable
+        if self.tone is Tone.CRITICAL:
+            solid, round_cap = Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap
+            for pen in (QPen(CARD, 4.5, solid, round_cap), QPen(color, 2, solid, round_cap)):
+                painter.setPen(pen)  # a gap in the card colour, then the stroke
+                painter.drawLine(QPointF(2, 24), QPointF(18, 2))
+
+
 class DesktopWidget(QWidget):
     settings_requested = Signal()
     reconnect_requested = Signal()
@@ -96,13 +134,16 @@ class DesktopWidget(QWidget):
         self.bar = BatteryBar()
         self.ac_in = self._label()
         self.ac_out = self._label()
-        self.grid = self._label()
+        self.grid = GridPlug()
         self.footer = self._label(size=8, color=TEXT_SECONDARY)
         self.footer.setWordWrap(True)
 
         header = QHBoxLayout()
         header.addWidget(self.title, 1)
         header.addWidget(self.link)
+        level = QHBoxLayout()
+        level.addWidget(self.battery, 1)
+        level.addWidget(self.grid, 0, Qt.AlignmentFlag.AlignVCenter)
         power = QHBoxLayout()
         power.addWidget(self.ac_in)
         power.addStretch(1)
@@ -112,10 +153,9 @@ class DesktopWidget(QWidget):
         layout.setSpacing(4)
         layout.addLayout(header)
         layout.addWidget(self.badge)
-        layout.addWidget(self.battery)
+        layout.addLayout(level)
         layout.addWidget(self.bar)
         layout.addLayout(power)
-        layout.addWidget(self.grid)
         layout.addWidget(self.footer)
         self.badge.hide()
         self.footer.hide()
@@ -147,10 +187,9 @@ class DesktopWidget(QWidget):
         self.bar.set_level(view.battery_level, view.battery_tone)
         self._paint(self.ac_in, f"AC in  {view.ac_in_text}", value_color)
         self._paint(self.ac_out, f"AC out  {view.ac_out_text}", value_color)
-        self._paint(self.grid, view.grid_text, TONE_COLORS[view.grid_tone])
+        self.grid.set_state(view.grid_text, view.grid_tone)
         self.footer.setText("\n".join(view.footer))
         self.footer.setVisible(bool(view.footer))
-        self.setToolTip(view.tooltip)
         self.adjustSize()
 
     @property
